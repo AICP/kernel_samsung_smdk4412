@@ -65,6 +65,8 @@
 #define CONFIG_TARGET_LOCALE_NAATT
 #endif
 
+#define CYPRESS_KEYLED_CONTROL 0
+
 static int touchkey_keycode[] = { 0,
 #if defined(TK_USE_4KEY_TYPE_ATT)
 	KEY_MENU, KEY_ENTER, KEY_BACK, KEY_END,
@@ -699,6 +701,7 @@ static irqreturn_t touchkey_interrupt(int irq, void *dev_id)
 		return IRQ_HANDLED;
 	}
 
+#if CYPRESS_KEYLED_CONTROL
 	if (pressed) {
 		set_touchkey_debug('P');
 
@@ -713,7 +716,7 @@ static irqreturn_t touchkey_interrupt(int irq, void *dev_id)
                 mod_timer(&touch_led_timer, jiffies + (HZ * touch_led_timeout));
             }
         }
-        
+
     } else {
         // touch led timeout on keyup
         if (touch_led_disabled == 0) {
@@ -726,7 +729,7 @@ static irqreturn_t touchkey_interrupt(int irq, void *dev_id)
             }
         }
     }
-
+#endif
 	if (get_tsp_status() && pressed)
 		pr_debug("[TouchKey] touchkey pressed but don't send event because touch is pressed.\n");
 	else {
@@ -1128,6 +1131,7 @@ static ssize_t touchkey_led_control(struct device *dev,
         ret = i2c_touchkey_write(tkey_i2c->client, (u8 *) &data, 1);
     }
 
+#if CYPRESS_KEYLED_CONTROL
     if(data == ledCmd[0]) {
         if (touch_led_disabled == 0) {
             if (timer_pending(&touch_led_timer) == 0) {
@@ -1144,6 +1148,7 @@ static ssize_t touchkey_led_control(struct device *dev,
             del_timer(&touch_led_timer);
         }
     }
+#endif
 
 	if (ret == -ENODEV) {
 		pr_err("[Touchkey] error to write i2c\n");
@@ -1244,6 +1249,7 @@ void touch_led_timedout_work(struct work_struct *work)
 
 void touchscreen_state_report(int state)
 {
+#if CYPRESS_KEYLED_CONTROL
     static const int ledCmd[] = {TK_CMD_LED_ON, TK_CMD_LED_OFF};
 
     // Yank555.lu : touch_led_on_screen_touch : only accept feedback from touchscreen driver if enabled
@@ -1270,6 +1276,7 @@ void touchscreen_state_report(int state)
             }
         }
     }
+#endif
 }
 
 #if defined(TK_USE_4KEY) || defined(CONFIG_TARGET_LOCALE_NAATT) || defined(CONFIG_TARGET_LOCALE_NA)
